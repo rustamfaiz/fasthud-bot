@@ -2,4 +2,4 @@ aiogram==3.3.0
 asyncpg
 sqlalchemy
 python-dotenv
-# force redeploy
+# force rebuild
