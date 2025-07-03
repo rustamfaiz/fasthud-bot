@@ -1,11 +1,11 @@
 from aiogram import Router
 from aiogram.types import Message, FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.enums import ParseMode
-from aiogram.filters import Text
+
 
 router = Router()
 
-@router.message(Text("🎯 Что ты получишь из этой книги"))
+@router.message(Text("📕 Что ты получишь из этой книги"))
 async def what_you_get(message: Message):
     text = (
         "<b>📘 Что ты получишь из этой книги</b>\n\n"
