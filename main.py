@@ -1,17 +1,24 @@
 import asyncio
 import logging
 import os
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    Message,
+    CallbackQuery,
+)
 from aiogram.filters import CommandStart
 from dotenv import load_dotenv
 
-# Загрузка переменных из .env
+# Загрузка переменных окружения
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 
-# Включаем логирование
+# Настройка логирования
 logging.basicConfig(level=logging.INFO)
 
 # Инициализация бота и диспетчера
@@ -38,16 +45,53 @@ text_welcome = (
     "⬇️ Жми кнопку — и получи инструкцию."
 )
 
-# Кнопки
+# Кнопки под приветствием
 welcome_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="💸 Получить книгу", callback_data="get_book")],
     [InlineKeyboardButton(text="🎯 Что ты получишь из этой книги", callback_data="book_info")]
 ])
 
+# Кнопки выбора страны
+country_keyboard = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="Россия")],
+        [KeyboardButton(text="США / Другая страна")]
+    ],
+    resize_keyboard=True,
+    one_time_keyboard=True
+)
+
 # Обработка команды /start
 @dp.message(CommandStart())
-async def cmd_start(message: types.Message):
+async def cmd_start(message: Message):
     await message.answer(text_welcome, reply_markup=welcome_keyboard)
+
+# Обработка нажатия на "Получить книгу"
+@dp.callback_query(F.data == "get_book")
+async def handle_get_book(callback: CallbackQuery):
+    await callback.answer()
+    await callback.message.answer("📕 Сейчас начнём. Выбери страну проживания:", reply_markup=country_keyboard)
+
+# Обработка выбора страны
+@dp.message(F.text.in_(["Россия", "США / Другая страна"]))
+async def handle_country(message: Message):
+    if message.text == "Россия":
+        await message.answer("💳 Цена для России: 990₽. (Здесь будет кнопка оплаты)", reply_markup=types.ReplyKeyboardRemove())
+    else:
+        await message.answer("💳 Цена для других стран: $19. (Здесь будет кнопка оплаты)", reply_markup=types.ReplyKeyboardRemove())
+
+# Обработка нажатия на "Что ты получишь из книги"
+@dp.callback_query(F.data == "book_info")
+async def handle_book_info(callback: CallbackQuery):
+    await callback.answer()
+    await callback.message.answer(
+        "📚 <b>Что внутри книги:</b>\n"
+        "— Как сжигать жир без голода\n"
+        "— Почему бег не работает\n"
+        "— Система питания, тренировок и контроля\n"
+        "— Мифы, маркетинг и реальность\n\n"
+        "Полный план на 4 месяца. Без мотивационного мусора. Только работающая схема."
+    )
 
 # Запуск бота
 async def main():
