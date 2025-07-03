@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardMarkup, KeyboardButton
-from aiogram.filters import Text
+from aiogram.filters. text import Text
 
 router = Router()
 
