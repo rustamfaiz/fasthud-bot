@@ -1,33 +1,29 @@
-import asyncio
 import os
-from aiogram import Bot, Dispatcher, F
-from aiogram.enums import ParseMode
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils import executor
 from dotenv import load_dotenv
 
-# Загрузка переменных из .env
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# FSM Состояния
-class PurchaseStates(StatesGroup):
-    choosing_region = State()
-    entering_promocode = State()
-    confirming_promocode = State()
-    waiting_for_payment = State()
-    collecting_user_data = State()
-    generating_pdf = State()
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(bot)
 
-# Инициализация
-bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
-dp = Dispatcher(storage=MemoryStorage())
+# --- КНОПКИ ---
+start_keyboard = InlineKeyboardMarkup(row_width=1)
+start_keyboard.add(
+    InlineKeyboardButton("💸 Получить книгу", callback_data="get_book"),
+    InlineKeyboardButton("🎯 Что ты получишь из этой книги", callback_data="about_book")
+)
 
-# Приветственное сообщение
-WELCOME_TEXT = (
+back_keyboard = InlineKeyboardMarkup()
+back_keyboard.add(
+    InlineKeyboardButton("⬅ Вернуться", callback_data="back_to_start")
+)
+
+# --- ТЕКСТЫ ---
+start_text = (
     "Поздравляю.\n"
     "Новая попытка. Новый заход. Очередной старт против жира, который всё ещё с тобой.\n\n"
     "Давай честно — у тебя уже были диеты, был бег, была надежда увидеть плоский живот — хотя бы один раз, без возврата.\n"
@@ -39,41 +35,45 @@ WELCOME_TEXT = (
     "Так и появилась эта книга.\n"
     "Не из вдохновения. А из проверенной практики в борьбе с фитнес-мифами и бесполезными ритуалами.\n\n"
     "Это не про мотивацию. Это про метод.\n"
-    "Как за 4 месяца убрать жир — и не вернуть его больше никогда.\n\n"
-    "⬇️ Выбери, с чего начать:"
+    "Как за 4 месяца убрать жир — и не вернуть его больше никогда."
 )
 
-# Кнопки
-def start_keyboard():
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="💸 Получить книгу", callback_data="get_book")],
-            [InlineKeyboardButton(text="🎯 Что ты получишь из этой книги", callback_data="about_book")]
-        ]
-    )
-    return kb
+about_text = (
+    "Это не книга про “жить без сахара” и “верить в себя”.\n"
+    "Это — пошаговый инструмент для тех, кто устал начинать сначала.\n\n"
+    "Вот, что ты получишь:\n"
+    "— Всю правду о диетах и почему они всегда заканчиваются провалом\n"
+    "— Пошаговый план, как сбрасывать жир, даже если ешь перед сном\n"
+    "— Систему питания без голода, с нормальной, человеческой едой\n"
+    "— Объяснение, как реально работает жир и почему «ПП» не работает\n"
+    "— Программу тренировок на 4 месяца, где жир горит, пока ты спишь\n"
+    "— Формулу, как удержать результат и не возвращаться к прежнему телу\n"
+    "— Новое тело, о котором ты даже не мечтал\n\n"
+    "Всё, что мешало — разобрано. Всё, что нужно — собрано. Осталось только применить."
+)
 
-# Хэндлер /start
-@dp.message(F.text == "/start")
-async def cmd_start(message: Message, state: FSMContext):
-    print("[LOG] Пользователь запустил /start")
-    await message.answer(WELCOME_TEXT, reply_markup=start_keyboard())
+# --- ХЕНДЛЕРЫ ---
+@dp.message_handler(commands=['start'])
+async def send_welcome(message: types.Message):
+    await message.answer(start_text, reply_markup=start_keyboard)
 
-# Заглушки для кнопок (временно)
-@dp.callback_query(F.data == "get_book")
-async def handle_get_book(callback: CallbackQuery, state: FSMContext):
-    print("[LOG] Нажата кнопка 'Получить книгу'")
-    await callback.answer("Этап покупки будет добавлен позже.")
+@dp.callback_query_handler(lambda c: c.data == 'about_book')
+async def process_about(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    await bot.send_message(callback_query.from_user.id, about_text, reply_markup=back_keyboard)
 
-@dp.callback_query(F.data == "about_book")
-async def handle_about_book(callback: CallbackQuery, state: FSMContext):
-    print("[LOG] Нажата кнопка 'Что ты получишь'")
-    await callback.answer("Описание книги будет добавлено позже.")
+@dp.callback_query_handler(lambda c: c.data == 'back_to_start')
+async def process_back(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    await bot.send_message(callback_query.from_user.id, start_text, reply_markup=start_keyboard)
 
-# Запуск
-async def main():
-    print("[LOG] Бот запущен")
-    await dp.start_polling(bot)
+@dp.callback_query_handler(lambda c: c.data == 'get_book')
+async def process_get_book(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    await bot.send_message(callback_query.from_user.id, "🔻 Начинаем. Укажи регион для оплаты.")
+    # Тут пойдёт следующий шаг — выбор региона
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# --- ЗАПУСК ---
+if __name__ == '__main__':
+    from aiogram import executor
+    executor.start_polling(dp, skip_updates=True)
