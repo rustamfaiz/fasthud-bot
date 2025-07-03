@@ -1,12 +1,12 @@
 import asyncio
+import os
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.state import State, StatesGroup
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -25,23 +25,33 @@ class PurchaseStates(StatesGroup):
 def start_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💸 Получить книгу", callback_data="get_book")],
-        [InlineKeyboardButton(text="🎯 Что ты получишь из этой книги", callback_data="book_details")]
+        [InlineKeyboardButton(text="🎯 Что ты получишь из этой книги", callback_data="about_book")]
     ])
 
 def region_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🇷🇺 Россия", callback_data="region_ru")],
         [InlineKeyboardButton(text="🌍 Другие страны", callback_data="region_world")],
-        [InlineKeyboardButton(text="⬅ Назад", callback_data="back_to_start")]
+        [InlineKeyboardButton(text="⏪ Назад", callback_data="back_to_start")]
     ])
 
 @dp.message(F.text, commands=["start"])
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(
-        "Поздравляю. Новый заход. Очередной старт против жира...
-
-⬇️ Жми «Получить книгу».",
+        "Поздравляю.\n"
+        "Новая попытка. Новый заход. Очередной старт против жира, который всё ещё с тобой.\n\n"
+        "Давай честно — у тебя уже были диеты, был бег, была надежда увидеть плоский живот — хотя бы один раз, без возврата.\n"
+        "Но вместо результата — снова цифры туда-сюда. И снова ничего.\n\n"
+        "Привет. Меня зовут Рустам.\n"
+        "В 2019 году я сжёг двадцать килограммов — через голод, бег, полное отречение от сладкого, мучного и жизни.\n\n"
+        "Настолько ушёл в процесс, что разобрал физиологию, нутрициологию и тренировочную механику до костей.\n"
+        "Потом специально набирал жир — и сжигал его снова. Несколько раз. Системно. Без голода, бега и со вкусом жизни. За 4 месяца.\n\n"
+        "Так и появилась эта книга.\n"
+        "Не из вдохновения. А из проверенной практики в борьбе с фитнес-мифами и бесполезными ритуалами.\n\n"
+        "Это не про мотивацию. Это про метод.\n"
+        "Как за 4 месяца убрать жир — и не вернуть его больше никогда.\n\n"
+        "⬇️ Жми «Начать» — и получи инструкцию.",
         reply_markup=start_keyboard()
     )
 
@@ -52,45 +62,3 @@ async def on_get_book(callback: CallbackQuery, state: FSMContext):
         "Укажи регион — для определения способа оплаты.",
         reply_markup=region_keyboard()
     )
-
-@dp.callback_query(F.data == "book_details")
-async def on_book_details(callback: CallbackQuery):
-    await callback.message.edit_text(
-        "📘 Что ты получишь из этой книги:
-
-"
-        "— Всю правду о диетах
-"
-        "— Пошаговый план
-"
-        "— Питание без голода
-"
-        "— Объяснение, как работает жир
-"
-        "— Тренировки на 4 месяца
-"
-        "— Как удержать результат
-"
-        "— Новое тело
-
-⬇️ Готов? Жми «Получить книгу».",
-        reply_markup=start_keyboard()
-    )
-
-@dp.callback_query(F.data == "back_to_start")
-async def on_back_to_start(callback: CallbackQuery, state: FSMContext):
-    await state.clear()
-    await callback.message.edit_text("⬅ Возвращаемся в начало.", reply_markup=start_keyboard())
-
-@dp.callback_query(F.data.startswith("region_"))
-async def on_region_chosen(callback: CallbackQuery, state: FSMContext):
-    region = callback.data.split("_")[1]
-    await state.update_data(region=region)
-    await callback.message.edit_text(f"✅ Регион выбран: {region.upper()}.
-🔜 Дальше — промокод.")
-
-async def main():
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    asyncio.run(main())
