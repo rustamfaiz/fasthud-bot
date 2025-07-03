@@ -1,9 +1,10 @@
 import asyncio
-from aiogram import Bot, Dispatcher, types
+import os
+from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
 from aiogram.types import Message
+from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,7 +14,7 @@ bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher(storage=MemoryStorage())
 
 
-@dp.message(commands=["start"])
+@dp.message(Command("start"))
 async def start_handler(message: Message):
     await message.answer("Бот запущен. Привет! Выбери опцию:")
 
