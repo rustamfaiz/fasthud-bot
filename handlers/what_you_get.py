@@ -5,7 +5,7 @@ from aiogram.enums import ParseMode
 
 router = Router()
 
-@router.message(Text("📕 Что ты получишь из этой книги"))
+@router.message(lambda message: message.text == "📕 Что ты получишь из этой книги")
 async def what_you_get(message: Message):
     text = (
         "<b>📘 Что ты получишь из этой книги</b>\n\n"
